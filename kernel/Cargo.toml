@@ -1,0 +1,17 @@
+[package]
+name = "kernel"
+edition = "2024"
+
+[[bin]]
+name = "kernel"
+bench = false
+test = false
+path = "main.rs"
+
+[lib]
+name = "kernel"
+bench = false
+test = false
+path = "lib.rs"
+
+[dependencies]
