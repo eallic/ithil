@@ -22,3 +22,4 @@ uefi = { version = "0.36.1", features = [
     "logger",
     "log-debugcon",
 ] }
+xmas-elf = "0.10.0"
