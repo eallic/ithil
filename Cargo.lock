@@ -71,6 +71,11 @@ dependencies = [
 [[package]]
 name = "kernel"
 version = "0.0.0"
+dependencies = [
+ "bootloader",
+ "log",
+ "qemu-debugcon",
+]
 
 [[package]]
 name = "log"
@@ -105,6 +110,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "qemu-debugcon"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb6b8c59ce06aec9036b816295512c81d498b17789595b07ccd536fd7c0223ba"
+dependencies = [
+ "log",
 ]
 
 [[package]]

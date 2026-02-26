@@ -1,14 +1,20 @@
 #![no_std]
 #![no_main]
 
+use bootloader::entry_point;
 use core::panic::PanicInfo;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+entry_point!(kernel_main);
+
+fn kernel_main() -> ! {
+    qemu_debugcon::init_logger();
+    log::info!("Hello from the kernel");
+
     kernel::hcf();
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    log::info!("{info}");
     kernel::hcf();
 }
