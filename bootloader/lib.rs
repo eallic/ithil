@@ -6,6 +6,7 @@ use core::arch::asm;
 use x86_64::PhysAddr;
 
 pub mod memory;
+pub mod paging;
 
 pub const PAGE_SIZE: usize = 4096;
 

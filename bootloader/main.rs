@@ -4,7 +4,7 @@
 use bootloader::Framebuffer;
 use bootloader::PAGE_SIZE;
 use bootloader::PixelFormat;
-use bootloader::memory::EarlyFrameAllocator;
+use bootloader::memory;
 use core::panic::PanicInfo;
 use core::slice;
 use uefi::CStr16;
@@ -34,7 +34,7 @@ fn main() -> Status {
     let mut memory_map = unsafe { boot::exit_boot_services(None) };
     memory_map.sort();
 
-    let mut _frame_allocator = EarlyFrameAllocator::new(memory_map);
+    memory::init(memory_map);
 
     bootloader::hcf();
 }
