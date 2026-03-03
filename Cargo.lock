@@ -72,7 +72,6 @@ dependencies = [
 name = "kernel"
 version = "0.0.0"
 dependencies = [
- "bootloader",
  "log",
  "qemu-debugcon",
 ]

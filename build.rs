@@ -43,7 +43,7 @@ fn create_image(img_path: &Path, bootloader_path: &Path, kernel_path: &Path) {
     let kernel_size = fs::metadata(kernel_path).unwrap().len();
 
     let needed_bytes = bootloader_size + kernel_size;
-    let needed_mb = (needed_bytes + MB - 1) / MB + 4;
+    let needed_mb = needed_bytes.div_ceil(MB) + 4;
     let needed_bytes = needed_mb * MB;
 
     let fat_file = fs::OpenOptions::new()

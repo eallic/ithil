@@ -1,5 +1,4 @@
 use bootloader::PAGE_SIZE;
-use bootloader::paging::PageTables;
 use uefi::boot::MemoryType;
 use uefi::mem::memory_map::MemoryMap;
 use uefi::mem::memory_map::MemoryMapOwned;
@@ -7,12 +6,6 @@ use x86_64::PhysAddr;
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::PhysFrame;
 use x86_64::structures::paging::Size4KiB;
-
-pub fn init(memory_map: MemoryMapOwned) {
-    let mut frame_allocator = EarlyFrameAllocator::new(memory_map);
-
-    let _page_tables = PageTables::new(&mut frame_allocator);
-}
 
 pub struct EarlyFrameAllocator {
     memory_map: MemoryMapOwned,
@@ -39,7 +32,7 @@ impl EarlyFrameAllocator {
     pub fn max_phys_addr(&self) -> PhysAddr {
         self.memory_map
             .entries()
-            .map(|r| PhysAddr::new_truncate(r.phys_start) + r.page_count * PAGE_SIZE as u64)
+            .map(|r| PhysAddr::new_truncate(r.phys_start + r.page_count * PAGE_SIZE as u64))
             .max()
             .unwrap()
     }
