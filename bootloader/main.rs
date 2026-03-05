@@ -30,7 +30,11 @@ fn main() -> Status {
     let mut frame_allocator = EarlyFrameAllocator::new(memory_map);
     let mut page_tables = PageTables::new(&mut frame_allocator);
 
-    let mappings = Mappings::new(&kernel, &mut frame_allocator, &mut page_tables);
+    let mappings = Mappings::new(
+        &kernel,
+        &mut frame_allocator,
+        &mut page_tables.kernel_pml4_table,
+    );
 
     unsafe {
         bootloader::context_switch(

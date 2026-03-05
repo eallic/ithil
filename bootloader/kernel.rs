@@ -1,5 +1,4 @@
 use bootloader::memory::EarlyFrameAllocator;
-use bootloader::paging::UsedLevel4Entries;
 use x86_64::PhysAddr;
 use x86_64::VirtAddr;
 use x86_64::align_up;
@@ -38,10 +37,8 @@ impl<'a> Loader<'a> {
         kernel: &'a ElfFile<'a>,
         page_table: &'a mut OffsetPageTable<'static>,
         frame_allocator: &'a mut EarlyFrameAllocator,
-        used_entries: &'a mut UsedLevel4Entries,
     ) -> Self {
         let kernel_offset = PhysAddr::new(&kernel.input[0] as *const u8 as u64);
-        used_entries.mark_segments(kernel.program_iter());
 
         Loader {
             kernel,
@@ -81,27 +78,25 @@ impl<'a> Inner<'a> {
         log::info!("Handling segment: {:#x?}", segment);
 
         let phys_start_addr = self.kernel_offset + segment.offset();
-        let start_frame: PhysFrame = PhysFrame::containing_address(phys_start_addr);
-        let end_frame: PhysFrame =
-            PhysFrame::containing_address(phys_start_addr + segment.file_size() - 1u64);
-
         let virt_start_addr = VirtAddr::new(segment.virtual_addr());
+
         let start_page: Page = Page::containing_address(virt_start_addr);
 
-        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
-            let offset = frame - start_frame;
+        let frames = PhysFrame::range_inclusive(
+            PhysFrame::containing_address(phys_start_addr),
+            PhysFrame::containing_address(phys_start_addr + segment.file_size() - 1u64),
+        );
+
+        for frame in frames {
+            let offset = frame - frames.start;
             let page = start_page + offset;
-            let flusher = unsafe {
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            unsafe {
                 self.page_table
-                    .map_to(
-                        page,
-                        frame,
-                        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
-                        self.frame_allocator,
-                    )
+                    .map_to(page, frame, flags, self.frame_allocator)
                     .unwrap()
+                    .flush();
             };
-            flusher.ignore();
         }
 
         if segment.mem_size() > segment.file_size() {
@@ -134,25 +129,23 @@ impl<'a> Inner<'a> {
             }
         }
 
-        let start_page: Page =
-            Page::containing_address(VirtAddr::new(align_up(zero_start.as_u64(), Size4KiB::SIZE)));
-        let end_page = Page::containing_address(zero_end - 1u64);
-        for page in Page::range_inclusive(start_page, end_page) {
+        let pages = Page::range_inclusive(
+            Page::containing_address(VirtAddr::new(align_up(zero_start.as_u64(), Size4KiB::SIZE))),
+            Page::containing_address(zero_end - 1u64),
+        );
+
+        for page in pages {
             let frame = self.frame_allocator.allocate_frame().unwrap();
             let frame_ptr = frame.start_address().as_u64() as *mut PageArray;
             unsafe { frame_ptr.write(ZERO_ARRAY) };
 
-            let flusher = unsafe {
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            unsafe {
                 self.page_table
-                    .map_to(
-                        page,
-                        frame,
-                        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
-                        self.frame_allocator,
-                    )
+                    .map_to(page, frame, flags, self.frame_allocator)
                     .unwrap()
+                    .ignore();
             };
-            flusher.ignore();
         }
     }
 
@@ -201,9 +194,8 @@ pub fn load_kernel<'a>(
     kernel: &ElfFile<'a>,
     page_table: &'a mut OffsetPageTable<'static>,
     frame_allocator: &'a mut EarlyFrameAllocator,
-    used_entries: &'a mut UsedLevel4Entries,
 ) -> VirtAddr {
-    let mut loader = Loader::new(kernel, page_table, frame_allocator, used_entries);
+    let mut loader = Loader::new(kernel, page_table, frame_allocator);
     loader.load_segments();
 
     loader.entry_point()

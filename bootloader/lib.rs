@@ -14,6 +14,7 @@ pub mod paging;
 
 pub const PAGE_SIZE: usize = 4096;
 pub const KERNEL_STACK_SIZE: u64 = 64 * 1024;
+pub const KERNEL_STACK_TOP: VirtAddr = VirtAddr::new(0xFFFF_8180_0000_0000);
 
 pub fn hcf() -> ! {
     loop {
