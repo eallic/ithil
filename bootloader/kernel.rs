@@ -75,7 +75,7 @@ impl<'a> Loader<'a> {
 
 impl<'a> Inner<'a> {
     fn handle_load_segment(&mut self, segment: ProgramHeader) {
-        log::info!("Handling segment: {:#x?}", segment);
+        log::info!("Handling segment: {:x?}", segment);
 
         let phys_start_addr = self.kernel_offset + segment.offset();
         let virt_start_addr = VirtAddr::new(segment.virtual_addr());
@@ -105,6 +105,8 @@ impl<'a> Inner<'a> {
     }
 
     fn handle_bss_section(&mut self, segment: &ProgramHeader) {
+        log::info!("Handling BSS section");
+
         let virt_start_addr = VirtAddr::new(segment.virtual_addr());
         let mem_size = segment.mem_size();
         let file_size = segment.file_size();
@@ -199,23 +201,4 @@ pub fn load_kernel<'a>(
     loader.load_segments();
 
     loader.entry_point()
-}
-
-pub fn calc_memory_requirements(elf: &ElfFile) -> (u64, u64) {
-    let max_addr = elf
-        .program_iter()
-        .filter(|h| matches!(h.get_type(), Ok(Type::Load)))
-        .map(|h| h.virtual_addr() + h.mem_size())
-        .max()
-        .unwrap_or(0);
-    let min_addr = elf
-        .program_iter()
-        .filter(|h| matches!(h.get_type(), Ok(Type::Load)))
-        .map(|h| h.virtual_addr())
-        .min()
-        .unwrap_or(0);
-
-    let size = max_addr - min_addr;
-
-    (size, min_addr)
 }

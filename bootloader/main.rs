@@ -36,11 +36,14 @@ fn main() -> Status {
         &mut page_tables.kernel_pml4_table,
     );
 
+    let boot_info = bootloader::create_boot_info(&mut frame_allocator, &mut page_tables);
+
     unsafe {
         bootloader::context_switch(
             page_tables.kernel_pml4_frame,
             mappings.stack_top,
             mappings.entry_point,
+            boot_info,
         );
     }
 }

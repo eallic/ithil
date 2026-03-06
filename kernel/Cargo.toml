@@ -18,6 +18,7 @@ test = false
 path = "lib.rs"
 
 [dependencies]
+bootloader = { path = "../bootloader" }
 log = "0.4.29"
 qemu-debugcon = { version = "0.1.0", features = ["log"] }
 spin = "0.10.0"
