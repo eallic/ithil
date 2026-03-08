@@ -7,6 +7,8 @@ use bootloader::paging::PageTables;
 use core::alloc::Layout;
 use core::arch::asm;
 use core::mem::MaybeUninit;
+use core::slice;
+use x86_64::PhysAddr;
 use x86_64::VirtAddr;
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::Mapper;
@@ -23,13 +25,56 @@ pub const PAGE_SIZE: usize = 4096;
 pub const KERNEL_STACK_SIZE: u64 = 64 * 1024;
 pub const KERNEL_STACK_TOP: VirtAddr = VirtAddr::new(0xFFFF_8180_0000_0000);
 pub const BOOT_INFO_ADDR: VirtAddr = VirtAddr::new(0xFFFF_8180_2000_0000);
+pub const FRAMEBUFFER_ADDR: VirtAddr = VirtAddr::new(0xFFFF_8180_2020_0000);
 
 #[derive(Debug)]
-pub struct BootInfo {}
+pub struct BootInfo {
+    pub rsdp_addr: Option<PhysAddr>,
+    pub framebuffer: Option<Framebuffer>,
+}
 
-pub fn create_boot_info<'a>(
-    frame_allocator: &'a mut EarlyFrameAllocator,
-    page_tables: &'a mut PageTables,
+#[derive(Debug, Copy, Clone)]
+pub struct Framebuffer {
+    pub virt_addr: VirtAddr,
+    pub phys_addr: PhysAddr,
+    pub byte_len: usize,
+    pub width: usize,
+    pub height: usize,
+    pub stride: usize,
+    pub bpp: usize,
+    pub pixel_format: PixelFormat,
+}
+
+impl Framebuffer {
+    pub fn buffer(&self) -> &[u8] {
+        unsafe { self.create_buffer() }
+    }
+
+    pub fn buffer_mut(&mut self) -> &mut [u8] {
+        unsafe { self.create_buffer_mut() }
+    }
+
+    unsafe fn create_buffer<'a>(&self) -> &'a [u8] {
+        unsafe { slice::from_raw_parts(self.virt_addr.as_ptr(), self.byte_len) }
+    }
+
+    unsafe fn create_buffer_mut<'a>(&self) -> &'a mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.virt_addr.as_mut_ptr(), self.byte_len) }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum PixelFormat {
+    Rgb,
+    Bgr,
+}
+
+pub fn create_boot_info(
+    frame_allocator: &mut EarlyFrameAllocator,
+    page_tables: &mut PageTables,
+    rsdp_addr: Option<PhysAddr>,
+    framebuffer: Option<Framebuffer>,
 ) -> &'static mut BootInfo {
     // Map boot info
     let layout = Layout::new::<BootInfo>();
@@ -63,7 +108,10 @@ pub fn create_boot_info<'a>(
     let boot_info: &'static mut MaybeUninit<BootInfo> =
         unsafe { &mut *BOOT_INFO_ADDR.as_mut_ptr() };
 
-    let boot_info = boot_info.write(BootInfo {});
+    let boot_info = boot_info.write(BootInfo {
+        rsdp_addr: rsdp_addr,
+        framebuffer: framebuffer,
+    });
 
     boot_info
 }

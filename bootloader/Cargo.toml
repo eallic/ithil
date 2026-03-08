@@ -22,8 +22,8 @@ log = { version = "0.4.29", features = ["max_level_info"] }
 uefi = { version = "0.36.1", features = [
     "alloc",
     "global_allocator",
-    "logger",
     "log-debugcon",
+    "logger",
 ] }
 x86_64 = "0.15.4"
 xmas-elf = "0.10.0"

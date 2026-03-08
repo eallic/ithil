@@ -1,3 +1,4 @@
+use bootloader::Framebuffer;
 use bootloader::memory::EarlyFrameAllocator;
 use x86_64::VirtAddr;
 use x86_64::registers::control::Cr3;
@@ -14,7 +15,10 @@ pub struct PageTables {
 }
 
 impl PageTables {
-    pub fn new(frame_allocator: &mut EarlyFrameAllocator) -> Self {
+    pub fn new(
+        frame_allocator: &mut EarlyFrameAllocator,
+        framebuffer: Option<Framebuffer>,
+    ) -> Self {
         let current_frame = Cr3::read().0;
         let old_table_ptr: *const PageTable =
             VirtAddr::new(current_frame.start_address().as_u64()).as_ptr();
@@ -30,6 +34,14 @@ impl PageTables {
         let end_addr = VirtAddr::new(frame_allocator.max_phys_addr().as_u64() - 1);
         for p4 in 0..=usize::from(end_addr.p4_index()) {
             new_table[p4] = old_table[p4].clone();
+        }
+
+        if let Some(framebuffer) = framebuffer {
+            let start_addr = VirtAddr::new(framebuffer.phys_addr.as_u64());
+            let end_addr = start_addr + framebuffer.byte_len as u64;
+            for p4 in usize::from(start_addr.p4_index())..=usize::from(end_addr.p4_index()) {
+                new_table[p4] = old_table[p4].clone();
+            }
         }
 
         unsafe {

@@ -12,6 +12,15 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     log::info!("Hello from the kernel");
     log::info!("{:#x?}", boot_info);
 
+    if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
+        for pixel in framebuffer.buffer_mut().chunks_exact_mut(4) {
+            pixel[0] = 255;
+            pixel[1] = 0;
+            pixel[2] = 0;
+            pixel[3] = 0;
+        }
+    }
+
     kernel::hcf();
 }
 
